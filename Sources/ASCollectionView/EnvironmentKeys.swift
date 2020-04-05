@@ -38,6 +38,19 @@ public extension View
 	{
 		environment(\.tableViewOnReachedBottom, onReachedBottom)
 	}
+    
+    /// Set a closure that is called whenever the tableView is scrolled.
+    /// This is useful to make some actions based on content offset
+    func tableViewOnScroll(_ onScroll: @escaping ((CGPoint) -> Void)) -> some View
+    {
+        environment(\.tableViewOnScroll, onScroll)
+    }
+    
+    /// Set a closure that is called whenever the tableView beggin scrolling.
+    func tableViewOnBeginScroll(_ onBeginScroll: @escaping (() -> Void)) -> some View
+    {
+        environment(\.tableViewOnBeginScroll, onBeginScroll)
+    }
 
 	/// Set a closure that is called whenever the collectionView is scrolled to a boundary. eg. the bottom.
 	/// This is useful to enable loading more data when scrolling to bottom
