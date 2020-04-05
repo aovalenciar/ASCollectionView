@@ -58,6 +58,20 @@ extension ASTableView where SectionID == Int
 			style: .plain,
 			sections: [ASTableViewSection(id: 0, content: staticContent)])
 	}
+    
+    public func tableViewHeader<Content: View>(height: CGFloat, content: () -> Content?) -> Self
+    {
+        var tableView = self
+        tableView.setHeaderView(content())
+        tableView.tableViewHeaderHeight = height
+        return tableView
+    }
+    
+    fileprivate mutating func setHeaderView<Content: View>(_ view: Content?)
+    {
+        guard let view = view else { return }
+        tableViewHeader = AnyView(view)
+    }
 }
 
 @available(iOS 13.0, *)
@@ -81,11 +95,17 @@ public struct ASTableView<SectionID: Hashable>: UIViewControllerRepresentable
 	@Environment(\.tableViewSeparatorsEnabled) private var separatorsEnabled
 	@Environment(\.onPullToRefresh) private var onPullToRefresh
 	@Environment(\.tableViewOnReachedBottom) private var onReachedBottom
+    @Environment(\.tableViewOnScroll) private var onScroll
+    @Environment(\.tableViewOnBeginScroll) private var onBeginScroll
 	@Environment(\.scrollIndicatorsEnabled) private var scrollIndicatorsEnabled
 	@Environment(\.contentInsets) private var contentInsets
 	@Environment(\.alwaysBounceVertical) private var alwaysBounceVertical
 	@Environment(\.editMode) private var editMode
 	@Environment(\.animateOnDataRefresh) private var animateOnDataRefresh
+    
+    // Other
+    var tableViewHeader: AnyView?
+    var tableViewHeaderHeight: CGFloat = 0
 
 	/**
 	 Initializes a  table view with the given sections
@@ -111,7 +131,7 @@ public struct ASTableView<SectionID: Hashable>: UIViewControllerRepresentable
 	{
 		context.coordinator.parent = self
 
-		let tableViewController = AS_TableViewController(style: style)
+		let tableViewController = AS_TableViewController(style: style, tableViewHeaderHeight: tableViewHeaderHeight, tableHeaderView: tableViewHeader)
 		tableViewController.coordinator = context.coordinator
 
 		updateTableViewSettings(tableViewController.tableView)
@@ -168,9 +188,11 @@ public struct ASTableView<SectionID: Hashable>: UIViewControllerRepresentable
 		typealias Cell = ASTableViewCell
 
 		init(_ parent: ASTableView)
-		{
-			self.parent = parent
-		}
+        {
+            self.parent = parent
+            super.init()
+            self.setUpNotifications()
+        }
 
 		func sectionID(fromSectionIndex sectionIndex: Int) -> SectionID?
 		{
@@ -383,6 +405,32 @@ public struct ASTableView<SectionID: Hashable>: UIViewControllerRepresentable
 		{
 			parent.sections[safe: indexPath.section]?.dataSource.onDelete(indexPath: indexPath, completionHandler: completionHandler)
 		}
+        
+        //MARK: Notification Center
+        
+        func setUpNotifications() {
+            NotificationCenter.default.addObserver(self, selector: #selector(asTableViewShouldScrollToSectionNotification(notif:)), name: .ASTableViewShouldScrollToSectionNotification, object: nil)
+        }
+        
+        func removeNotifications() {
+            NotificationCenter.default.removeObserver(self)
+        }
+        
+        @objc func asTableViewShouldScrollToSectionNotification(notif: Notification) {
+            
+            guard let section = notif.object as? Int,
+                parent.sections.count > section else {return}
+            
+            var animated = true
+            
+            if let animatedInfo = notif.userInfo?[Notification.ASKey.ScrollAnimated] as? Bool {
+                animated = animatedInfo
+            }
+            
+            //scroll to the specified section
+            let sectionIndexPath = IndexPath(row: NSNotFound, section: section)
+            tableViewController?.tableView.scrollToRow(at: sectionIndexPath, at: .top, animated: animated)
+        }
 
 		// MARK: Cell Selection
 
@@ -509,9 +557,14 @@ public struct ASTableView<SectionID: Hashable>: UIViewControllerRepresentable
 		}
 
 		public func scrollViewDidScroll(_ scrollView: UIScrollView)
-		{
-			checkIfReachedBottom(scrollView)
-		}
+        {
+            parent.onScroll(scrollView.contentOffset)
+            checkIfReachedBottom(scrollView)
+        }
+        
+        public func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+            parent.onBeginScroll()
+        }
 
 		var hasAlreadyReachedBottom: Bool = false
 		func checkIfReachedBottom(_ scrollView: UIScrollView)
@@ -529,6 +582,12 @@ public struct ASTableView<SectionID: Hashable>: UIViewControllerRepresentable
 				hasAlreadyReachedBottom = false
 			}
 		}
+        
+        //MARK: - deinit
+        
+        deinit {
+            removeNotifications()
+        }
 	}
 }
 
@@ -564,19 +623,40 @@ public class AS_TableViewController: UIViewController
 {
 	weak var coordinator: ASTableViewCoordinator?
 	var style: UITableView.Style
+    var tableHeaderView: AnyView?
+    var tableViewHeaderHeight: CGFloat = 0
 
 	lazy var tableView: UITableView = {
 		let tableView = UITableView(frame: .zero, style: style)
-		tableView.tableHeaderView = UIView(frame: CGRect(origin: .zero, size: CGSize(width: CGFloat.leastNormalMagnitude, height: CGFloat.leastNormalMagnitude))) // Remove unnecessary padding in Style.grouped/insetGrouped
+        
+		if let headerView = self.tableHeaderView {
+            
+            let vc = ASHostingController(headerView)
+            vc.viewController.view.frame = CGRect(x: 0, y: 0, width: tableView.frame.width, height: self.tableViewHeaderHeight)
+            vc.viewController.view.setNeedsLayout()
+            vc.viewController.view.layoutIfNeeded()
+            
+            addChild(vc.viewController)
+            
+            tableView.tableHeaderView = vc.viewController.view
+            
+            vc.viewController.didMove(toParent: self)
+            
+        } else {
+            tableView.tableHeaderView = UIView(frame: CGRect(origin: .zero, size: CGSize(width: CGFloat.leastNormalMagnitude, height: CGFloat.leastNormalMagnitude))) // Remove unnecessary padding in Style.grouped/insetGrouped
+        }
+        
 		tableView.tableFooterView = UIView(frame: CGRect(origin: .zero, size: CGSize(width: CGFloat.leastNormalMagnitude, height: CGFloat.leastNormalMagnitude))) // Remove separators for non-existent cells
 		return tableView
 	}()
 
-	public init(style: UITableView.Style)
-	{
-		self.style = style
-		super.init(nibName: nil, bundle: nil)
-	}
+	public init(style: UITableView.Style, tableViewHeaderHeight: CGFloat, tableHeaderView: AnyView? = nil)
+    {
+        self.style = style
+        self.tableHeaderView = tableHeaderView
+        self.tableViewHeaderHeight = tableViewHeaderHeight
+        super.init(nibName: nil, bundle: nil)
+    }
 
 	required init?(coder: NSCoder)
 	{

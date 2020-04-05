@@ -145,6 +145,18 @@ struct EnvironmentKeyASAlwaysBounceVertical: EnvironmentKey
 }
 
 @available(iOS 13.0, *)
+struct EnvironmentKeyASCollectionViewOnScroll: EnvironmentKey
+{
+    static let defaultValue: ((CGPoint) -> Void) = { _ in }
+}
+
+@available(iOS 13.0, *)
+struct EnvironmentKeyASCollectionViewOnBeginScroll: EnvironmentKey
+{
+    static let defaultValue: (() -> Void) = {}
+}
+
+@available(iOS 13.0, *)
 struct EnvironmentKeyASAlwaysBounceHorizontal: EnvironmentKey
 {
 	static let defaultValue: Bool = false
@@ -226,6 +238,18 @@ public extension EnvironmentValues
 		get { self[EnvironmentKeyASCollectionViewOnReachedBoundary.self] }
 		set { self[EnvironmentKeyASCollectionViewOnReachedBoundary.self] = newValue }
 	}
+    
+    var tableViewOnScroll: (CGPoint) -> Void
+    {
+        get { self[EnvironmentKeyASCollectionViewOnScroll.self] }
+        set { self[EnvironmentKeyASCollectionViewOnScroll.self] = newValue }
+    }
+    
+    var tableViewOnBeginScroll: () -> Void
+    {
+        get { self[EnvironmentKeyASCollectionViewOnBeginScroll.self] }
+        set { self[EnvironmentKeyASCollectionViewOnBeginScroll.self] = newValue }
+    }
 
 	var alwaysBounceVertical: Bool
 	{
