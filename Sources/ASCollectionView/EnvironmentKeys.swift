@@ -100,6 +100,11 @@ public extension View
 	{
 		environment(\.allowCellHeightToExceedCollectionContentSize, allowCellHeightToExceedCollectionContentSize)
 	}
+    
+    func collectionViewId(_ collectionViewId: UUID) -> some View
+    {
+        environment(\.collectionViewId, collectionViewId)
+    }
 
 	func animateOnDataRefresh(_ animateOnDataRefresh: Bool = true) -> some View
 	{

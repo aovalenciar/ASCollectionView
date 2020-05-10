@@ -218,7 +218,6 @@ public struct ASCollectionView<SectionID: Hashable>: UIViewControllerRepresentab
 		init(_ parent: ASCollectionView)
 		{
 			self.parent = parent
-            super.init()
             self.setUpNotifications()
 		}
 
