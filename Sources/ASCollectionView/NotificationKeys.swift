@@ -10,5 +10,6 @@ import Foundation
 extension Notification {
     public struct ASKey {
         public static let ScrollAnimated = "ScrollAnimated"
+        public static let CollectionViewId = "CollectionViewId"
     }
 }

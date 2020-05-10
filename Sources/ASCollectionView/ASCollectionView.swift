@@ -113,6 +113,7 @@ public struct ASCollectionView<SectionID: Hashable>: UIViewControllerRepresentab
 	@Environment(\.attemptToMaintainScrollPositionOnOrientationChange) private var attemptToMaintainScrollPositionOnOrientationChange
 	@Environment(\.allowCellWidthToExceedCollectionContentSize) private var allowCellWidthToExceedCollectionContentSize
 	@Environment(\.allowCellHeightToExceedCollectionContentSize) private var allowCellHeightToExceedCollectionContentSize
+    @Environment(\.collectionViewId) private var collectionViewId
 
 	// MARK: Init for multi-section CVs
 
@@ -217,6 +218,8 @@ public struct ASCollectionView<SectionID: Hashable>: UIViewControllerRepresentab
 		init(_ parent: ASCollectionView)
 		{
 			self.parent = parent
+            super.init()
+            self.setUpNotifications()
 		}
 
 		func sectionID(fromSectionIndex sectionIndex: Int) -> SectionID?
@@ -419,6 +422,26 @@ public struct ASCollectionView<SectionID: Hashable>: UIViewControllerRepresentab
 		{
 			hasDoneInitialSetup = false
 		}
+        
+        //MARK: Notification Center
+        
+        func setUpNotifications() {
+            NotificationCenter.default.addObserver(self, selector: #selector(aSCollectionViewScrollToIndexPathNotification(notif:)), name: .ASCollectionViewScrollToIndexPathNotification, object: nil)
+        }
+        
+        func removeNotifications() {
+            NotificationCenter.default.removeObserver(self)
+        }
+        
+        @objc func aSCollectionViewScrollToIndexPathNotification(notif: Notification) {
+            
+            guard let indexPath = notif.object as? IndexPath,
+                let id = notif.userInfo?[Notification.ASKey.CollectionViewId] as? UUID,
+                id == parent.collectionViewId else {return}
+
+            //scroll to the specified section
+            scrollToPosition(.centerOnIndexPath(indexPath))
+        }
 
 		// MARK: Functions for determining scroll position (on appear, and also on orientation change)
 
@@ -670,6 +693,12 @@ public struct ASCollectionView<SectionID: Hashable>: UIViewControllerRepresentab
 		private let queuePrefetch = PassthroughSubject<Void, Never>()
 		private var prefetchSubscription: AnyCancellable?
 		private var currentlyPrefetching: Set<IndexPath> = []
+        
+        //MARK: - deinit
+        
+        deinit {
+            removeNotifications()
+        }
 	}
 }
 

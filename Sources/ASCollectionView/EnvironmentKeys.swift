@@ -205,6 +205,12 @@ struct EnvironmentKeyASAllowCellHeightToExceedCollectionContentSize: Environment
 	static let defaultValue: Bool = true
 }
 
+@available(iOS 13.0, *)
+struct EnvironmentKeyASCollectionViewId: EnvironmentKey
+{
+    static let defaultValue: UUID = UUID()
+}
+
 // MARK: Internal Helpers
 
 @available(iOS 13.0, *)
@@ -305,4 +311,10 @@ public extension EnvironmentValues
 		get { self[EnvironmentKeyASAllowCellHeightToExceedCollectionContentSize.self] }
 		set { self[EnvironmentKeyASAllowCellHeightToExceedCollectionContentSize.self] = newValue }
 	}
+    
+    var collectionViewId: UUID
+    {
+        get { self[EnvironmentKeyASCollectionViewId.self] }
+        set { self[EnvironmentKeyASCollectionViewId.self] = newValue }
+    }
 }

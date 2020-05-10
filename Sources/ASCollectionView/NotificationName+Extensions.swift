@@ -9,4 +9,5 @@ import Foundation
 
 extension Notification.Name {
     public static let ASTableViewShouldScrollToSectionNotification = Notification.Name("ASTableViewShouldScrollToSectionNotification")
+    public static let ASCollectionViewScrollToIndexPathNotification = Notification.Name("ASCollectionViewScrollToIndexPathNotification")
 }
