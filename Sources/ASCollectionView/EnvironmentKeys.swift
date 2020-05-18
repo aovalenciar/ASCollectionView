@@ -51,6 +51,12 @@ public extension View
     {
         environment(\.tableViewOnBeginScroll, onBeginScroll)
     }
+    
+    /// Set an initial scroll position for the ASCollectionView
+    func tableViewInitialIndexPath(_ indexPath: IndexPath?) -> some View
+    {
+        environment(\.initialIndexPath, indexPath)
+    }
 
 	/// Set a closure that is called whenever the collectionView is scrolled to a boundary. eg. the bottom.
 	/// This is useful to enable loading more data when scrolling to bottom
@@ -216,6 +222,12 @@ struct EnvironmentKeyASCollectionViewId: EnvironmentKey
     static let defaultValue: UUID = UUID()
 }
 
+@available(iOS 13.0, *)
+struct EnvironmentKeyASInitialIndexPath: EnvironmentKey
+{
+    static let defaultValue: IndexPath? = nil
+}
+
 // MARK: Internal Helpers
 
 @available(iOS 13.0, *)
@@ -292,6 +304,12 @@ public extension EnvironmentValues
 		get { self[EnvironmentKeyASInitialScrollPosition.self] }
 		set { self[EnvironmentKeyASInitialScrollPosition.self] = newValue }
 	}
+    
+    var initialIndexPath: IndexPath?
+    {
+        get { self[EnvironmentKeyASInitialIndexPath.self] }
+        set { self[EnvironmentKeyASInitialIndexPath.self] = newValue }
+    }
 
 	var animateOnDataRefresh: Bool
 	{

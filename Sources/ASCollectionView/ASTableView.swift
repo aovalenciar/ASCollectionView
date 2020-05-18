@@ -102,6 +102,7 @@ public struct ASTableView<SectionID: Hashable>: UIViewControllerRepresentable
 	@Environment(\.alwaysBounceVertical) private var alwaysBounceVertical
 	@Environment(\.editMode) private var editMode
 	@Environment(\.animateOnDataRefresh) private var animateOnDataRefresh
+    @Environment(\.initialIndexPath) private var initialIndexPath
     
     // Other
     var tableViewHeader: AnyView?
@@ -291,6 +292,9 @@ public struct ASTableView<SectionID: Hashable>: UIViewControllerRepresentable
 
 				// Populate data source
 				populateDataSource(animated: false)
+                
+                // Set initial scroll position
+                parent.initialIndexPath.map { scrollToIndexPath($0, animated: false) }
 
 				// Check if reached bottom already
 				checkIfReachedBottom(tableViewController.tableView)
@@ -319,6 +323,13 @@ public struct ASTableView<SectionID: Hashable>: UIViewControllerRepresentable
 				tv.refreshControl = refreshControl
 			}
 		}
+        
+        // MARK: Functions for determining scroll position (on appear, and also on orientation change)
+
+        func scrollToIndexPath(_ indexPath: IndexPath, animated: Bool = false)
+        {
+            tableViewController?.tableView.scrollToRow(at: indexPath, at: .middle, animated: animated)
+        }
 
 		@objc
 		public func tableViewDidPullToRefresh()
